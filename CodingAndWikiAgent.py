@@ -293,8 +293,17 @@ for _ in range(5):  # Increased range to allow for thought + tool + response
                 "name": func_name,
                 "content": result
             })
-    else:
-        # If no tool calls, the model has provided a final answer
+    elif(res.choices[0].finish_reason=="stop"):
+        # Iif finish_reason=stop then model has finished
         print("\nFinal Response:")
         print(msg.content)
         break
+    elif res.choices[0].finish_reason == "length":
+        print("\nError: Model hit the max token limit.")
+        break
+
+    else:
+        # Fallback for unexpected states
+        print(f"\nModel ended with reason: {res.choices[0].finish_reason}")
+        break
+        
