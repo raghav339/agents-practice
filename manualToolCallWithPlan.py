@@ -14,7 +14,7 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-FREE_MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
+FREE_MODEL="llama-3.3-70b-versatile"
 
 tools=[
     {
