@@ -130,11 +130,13 @@ def load_memory():
         return {}
 
 def save_note(key:str,value:str):
+    key=str(key)
+    value=str(value)
     if not key.strip():
         return json.dumps({"error": "Key cannot be empty"})
     
     if value.lower() in ["", "empty", "none"]:
-        return json.dumps({"error": "Value is not meaningful"})
+        return json.dumps({"error": "Value is not meaningful ,ask user for value again"})
 
     mem=load_memory()
     mem[key]=value
@@ -162,13 +164,19 @@ def get_note(key: str):
     return json.dumps({"value": "Not Found"})
 
 REACT_SYSTEM_PROMPT = """You are a helpful assistant that solves problems step by step using tools.
-
+You first plan every tool_calls that you need to make before calling any tool and then follow the steps of plan to get desired result.Name plan steps as step1, step2, step3... in the plans object.
 You have access to these tools:
 {tool_descriptions}
 
 ## Output Format (STRICT JSON ONLY)
 
 Always respond in valid JSON.
+
+If you want to plan:
+{{
+"plans":{{...}},
+"why":"your reasoning"
+}}
 
 If you want to use a tool:
 {{
@@ -191,6 +199,8 @@ If you want to give final answer:
 - You MAY use multiple tools if required
 - Do NOT use tools for simple reasoning or general knowledge
 - If a question involves stored memory or calculation, use the appropriate tool
+- - If the user's request is missing required information (like a value for save_note), do NOT invent or guess the value. Instead, return a final_answer asking the user to provide the missing information.
+
 """
 REQUIRED_FIELDS={}
 for tool in tools:
@@ -218,7 +228,7 @@ def run_agent(user_query,verbose=True,max_iterations=10):
         {"role":"system","content":system},
         {"role":"user","content":user_query}
     ]
-    
+    checked_plans=False
     for i in range(max_iterations):
         res=client.chat.completions.create(
             model=FREE_MODEL,
@@ -236,6 +246,22 @@ def run_agent(user_query,verbose=True,max_iterations=10):
                 print("⚠️ Invalid JSON — retrying...")
                 print(f"No. of tries= {i+1}")
             continue    
+
+        if "plans" in parsed and "why" in parsed:   # ✅ Fix Bug 1
+            plans = parsed["plans"]
+            for step in plans:
+                print(f"{step}= {plans[step]}")
+            print(f"Reason: {parsed.get('why', '')}")
+            checked_plans = True
+            # ✅ Fix Bug 2 — tell the model to now execute the plan
+            conversation.append({
+                "role": "user",
+                "content": "Good plan. Now execute it step by step using the tools."
+            })
+            continue
+        elif checked_plans != True:
+            conversation.append({"role":"user","content":"Please first send plans and why before doing anything else."})
+            continue
         
         thought=parsed.get("thought","")
         if verbose and thought:
