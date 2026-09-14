@@ -28,6 +28,7 @@ agents-practice/
 ├── manualToolCallWithPlan.py
 ├── summarizeContextAfterNturns.py
 ├── memory.json
+├── requirements.txt
 └── README.md
 ```
 
@@ -196,8 +197,10 @@ source venv/bin/activate
 
 ### 3. Install dependencies
 
+Install the dependencies listed in `requirements.txt`:
+
 ```bash
-pip install openai requests
+pip install -r requirements.txt
 ```
 
 ### 4. Configure API keys
